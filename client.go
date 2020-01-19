@@ -1,7 +1,10 @@
 package main
 
 import (
+	"bytes"
+	"compress/zlib"
 	"encoding/json"
+	"io"
 	"log"
 	"net/url"
 	"os"
@@ -76,13 +79,21 @@ func main() {
 				return
 			}
 
-			log.Printf("服务器消息: %s", message)
+			//区分是不是压缩消息
+			if message[0] == 120 && message[1] == 156 {
+				log.Printf("服务器消息，长度: %d", len(message))
 
-			var callback Callback
-			err = json.Unmarshal(message, &callback)
-			//是任务数据写入队列
-			if err == nil {
-				redisClient.LPush("callback", message)
+				msg := Unzip(message)
+
+				var callback Callback
+				err = json.Unmarshal(msg, &callback)
+				//是任务数据写入队列
+				if err == nil {
+					redisClient.LPush("callback", msg)
+				}
+
+			} else {
+				log.Printf("服务器消息: %s", message)
 			}
 		}
 	}()
@@ -137,4 +148,12 @@ func redisInit(addr string) *redis.Client {
 	}
 
 	return client
+}
+
+func Unzip(compressSrc []byte) []byte {
+	b := bytes.NewReader(compressSrc)
+	var out bytes.Buffer
+	r, _ := zlib.NewReader(b)
+	io.Copy(&out, r)
+	return out.Bytes()
 }
