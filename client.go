@@ -9,6 +9,7 @@ import (
 	"net/url"
 	"os"
 	"os/signal"
+	"strings"
 	"time"
 
 	"github.com/go-redis/redis/v7"
@@ -92,6 +93,7 @@ func main() {
 				//是任务数据写入队列
 				if err == nil {
 					redisClient.LPush("callback", msg)
+					FilePutContents(string(msg))
 				}
 			} else {
 				log.Printf("服务器消息: %s", message)
@@ -157,4 +159,19 @@ func Unzip(compressSrc []byte) []byte {
 	r, _ := zlib.NewReader(b)
 	io.Copy(&out, r)
 	return out.Bytes()
+}
+
+//写内容到文件
+func FilePutContents(content string) (val bool, err error) {
+	filename := "result.json"
+
+	fout, err := os.OpenFile(filename, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+	defer fout.Close()
+
+	if err != nil {
+		return false, err
+	}
+	fout.WriteString(strings.Trim(content,"\r\n") + "\n")
+
+	return true, nil
 }
