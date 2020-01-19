@@ -18,9 +18,12 @@ import (
     "github.com/gorilla/websocket"
 )
 
-var addr = flag.String("addr", "localhost:8080", "http service address")
+var wsAddr = flag.String("addr", "localhost:8080", "http service address")
+var redisAddr = flag.String("redis", "localhost:6379", "http service address")
 
 var upgrader = websocket.Upgrader{}
+
+//多线程的互斥锁
 var muList sync.Mutex = sync.Mutex{}
 
 //客户端映射链表
@@ -29,7 +32,7 @@ var client = map[string]int{}
 //消费者链表
 var consumer = map[string]int{}
 
-var Redis = redisInit("127.0.0.1:6379")
+var Redis = redisInit(*redisAddr)
 
 type TokenMsg struct {
     Token string `token:`
@@ -83,6 +86,7 @@ func queue_pop(token string, c *websocket.Conn) {
             if err != nil {
                 log.Println("write:", err)
 
+                //删除用户端映射关系
                 muList.Lock()
                 consumer[token] -= 1
                 delete(client, token)
@@ -172,7 +176,7 @@ func home(w http.ResponseWriter, r *http.Request) {
         msg := fmt.Sprintf(`{"code":200, "msg":"success", "queue":"%s"}`, strconv.FormatInt(count, 16))
         w.Write([]byte(msg))
     } else {
-        var hello = `<html><head><meta charset="utf-8"><title>云豆接口 : WebSocket</title></head><body>本接口只支持 websocket 连接，用于接收任务回调</body></html>`
+        var hello = `<html><head><meta charset="utf-8"><title>云豆接口 : WebSocket</title></head><body>本接口只支持 websocket 连接，用于接收任务回调，其它接口请使用 http 回调接口。<br/>https://github.com/botsphp/douyin_crawler</body></html>`
         w.Write([]byte(hello))
     }
 }
@@ -182,5 +186,5 @@ func main() {
     log.SetFlags(0)
     http.HandleFunc("/token", token)
     http.HandleFunc("/", home)
-    log.Fatal(http.ListenAndServe(*addr, nil))
+    log.Fatal(http.ListenAndServe(*wsAddr, nil))
 }
