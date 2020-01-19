@@ -16,6 +16,8 @@ import (
 	"github.com/joshbetz/config"
 )
 
+var configName = "config.json"
+
 type Callback struct {
 	Type string
 }
@@ -25,14 +27,14 @@ func main() {
 
 	var conf_redis, conf_token, conf_addr string
 
-	conf := config.New("config.json")
+	conf := config.New(configName)
 
 	conf.Get("redis", &conf_redis)
 	conf.Get("token", &conf_token)
 	conf.Get("server", &conf_addr)
 
 	if conf_redis == "" || conf_token == "" || conf_addr == "" {
-		log.Fatal("配置文件不正确，请在当前目录创建 configs.json 文件" + `
+		log.Fatal("配置文件不正确，请在当前目录创建 " + configName + " 文件" + `
 {
     "token":"xxooxxoo",
     "server":"127.0.0.1:8080",
@@ -91,7 +93,6 @@ func main() {
 				if err == nil {
 					redisClient.LPush("callback", msg)
 				}
-
 			} else {
 				log.Printf("服务器消息: %s", message)
 			}

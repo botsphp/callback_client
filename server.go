@@ -111,10 +111,10 @@ func token(w http.ResponseWriter, r *http.Request) {
     for {
         mt, message, err := c.ReadMessage()
         if err != nil {
-            log.Println("read:", err)
+            log.Println("读取客户端消息出错:", err)
             break
         }
-        log.Printf("recv: %s", message)
+        log.Printf("客户端消息: %s", message)
 
         var token TokenMsg
         err = json.Unmarshal(message, &token)
@@ -134,12 +134,12 @@ func token(w http.ResponseWriter, r *http.Request) {
             }
             muList.Unlock()
 
-            log.Printf("客户端: %s, 共有连接: %d", token, len(client))
+            log.Printf("TOKEN: %s, 共有连接: %d", token, len(client))
         }
 
         err = c.WriteMessage(mt, message)
         if err != nil {
-            log.Println("write:", err)
+            log.Println("推送消息出错:", err)
             break
         }
     }
